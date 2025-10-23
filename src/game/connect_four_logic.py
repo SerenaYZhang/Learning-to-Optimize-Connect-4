@@ -4,6 +4,7 @@ COLUMN_COUNT = 7
 
 # --- Game State Functions ---
 
+
 def create_board():
     """
     Initializes the 6x7 board with zeros.
@@ -13,12 +14,14 @@ def create_board():
     board = [[0] * COLUMN_COUNT for _ in range(ROW_COUNT)]
     return board
 
+
 def drop_piece(board, row, col, piece):
     """
     Updates the board state by dropping a piece into the specified (row, col).
     Assumes the move has already been validated.
     """
     board[row][col] = piece
+
 
 def is_valid_location(board, col):
     """
@@ -29,6 +32,7 @@ def is_valid_location(board, col):
         return board[ROW_COUNT - 1][col] == 0
     return False
 
+
 def get_next_open_row(board, col):
     """
     Finds the lowest empty row index (r) in a given column (col).
@@ -37,7 +41,8 @@ def get_next_open_row(board, col):
     for r in range(ROW_COUNT):
         if board[r][col] == 0:
             return r
-    return -1 # Column is full
+    return -1  # Column is full
+
 
 def check_win(board, piece):
     """
@@ -47,30 +52,51 @@ def check_win(board, piece):
     # 1. Check horizontal locations
     for c in range(COLUMN_COUNT - 3):
         for r in range(ROW_COUNT):
-            if board[r][c] == piece and board[r][c+1] == piece and board[r][c+2] == piece and board[r][c+3] == piece:
+            if (
+                board[r][c] == piece
+                and board[r][c + 1] == piece
+                and board[r][c + 2] == piece
+                and board[r][c + 3] == piece
+            ):
                 return True
 
     # 2. Check vertical locations (only need to check up to ROW_COUNT - 3)
     for c in range(COLUMN_COUNT):
         for r in range(ROW_COUNT - 3):
-            if board[r][c] == piece and board[r+1][c] == piece and board[r+2][c] == piece and board[r+3][c] == piece:
+            if (
+                board[r][c] == piece
+                and board[r + 1][c] == piece
+                and board[r + 2][c] == piece
+                and board[r + 3][c] == piece
+            ):
                 return True
 
     # 3. Check positive slope diagonals (bottom-left to top-right)
     # Start checking from the bottom 3 rows and left 4 columns
     for c in range(COLUMN_COUNT - 3):
         for r in range(ROW_COUNT - 3):
-            if board[r][c] == piece and board[r+1][c+1] == piece and board[r+2][c+2] == piece and board[r+3][c+3] == piece:
+            if (
+                board[r][c] == piece
+                and board[r + 1][c + 1] == piece
+                and board[r + 2][c + 2] == piece
+                and board[r + 3][c + 3] == piece
+            ):
                 return True
 
     # 4. Check negative slope diagonals (top-left to bottom-right)
     # Start checking from the top 3 rows and left 4 columns
     for c in range(COLUMN_COUNT - 3):
-        for r in range(3, ROW_COUNT): # Start from row 3 (0-indexed) up to 5
-            if board[r][c] == piece and board[r-1][c+1] == piece and board[r-2][c+2] == piece and board[r-3][c+3] == piece:
+        for r in range(3, ROW_COUNT):  # Start from row 3 (0-indexed) up to 5
+            if (
+                board[r][c] == piece
+                and board[r - 1][c + 1] == piece
+                and board[r - 2][c + 2] == piece
+                and board[r - 3][c + 3] == piece
+            ):
                 return True
-    
+
     return False
+
 
 def is_board_full(board):
     """
@@ -81,7 +107,9 @@ def is_board_full(board):
             return False
     return True
 
+
 # --- Utility Function for AI (Minimax) ---
+
 
 def get_valid_moves(board):
     """Returns a list of columns where a piece can be dropped."""
@@ -90,6 +118,7 @@ def get_valid_moves(board):
         if is_valid_location(board, col):
             valid_moves.append(col)
     return valid_moves
+
 
 def get_piece_at(board, r, c):
     """Returns the piece at a specific (row, col) or 0 if out of bounds."""
