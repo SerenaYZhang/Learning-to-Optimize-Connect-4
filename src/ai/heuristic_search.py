@@ -1,4 +1,4 @@
-from connect_four_logic import (
+from src.game.connect_four_logic import (
     ROW_COUNT,
     COLUMN_COUNT,
     check_win,
