@@ -70,7 +70,7 @@ class ConnectFourApp:
         # --- Status Label ---
         self.status_label = tk.Label(
             master,
-            text="",
+            text="Select a game mode to start",
             font=("Inter", 16, "bold"),
             fg="white",
             bg=BACKGROUND_COLOR,
@@ -80,11 +80,11 @@ class ConnectFourApp:
         # --- Reset Button ---
         self.reset_button = tk.Button(
             master,
-            text="Reset Game",
+            text="New Game / Change Mode",
             command=self.reset_game,
             font=("Inter", 12),
             bg="#e74c3c",
-            fg="white",
+            fg="black",
             activebackground="#c0392b",
         )
         self.reset_button.pack(pady=5)
@@ -94,46 +94,127 @@ class ConnectFourApp:
         self.canvas.bind("<Motion>", self.handle_motion)
         self.indicator_circle = None
 
-        # --- Choose game mode at startup ---
+        # --- Show game mode selection at startup ---
         self.choose_game_mode()
 
     def choose_game_mode(self):
-        """Prompts the user to choose whether to play against another human or AI."""
-        response = messagebox.askquestion(
-            "Choose Game Mode",
-            "Would you like to play against the computer?",
-            icon="question",
+        """Shows the game mode selection window."""
+        mode_window = tk.Toplevel(self.master)
+        mode_window.title("Choose Game Mode")
+        mode_window.configure(bg=BACKGROUND_COLOR)
+        mode_window.geometry("400x250")
+        mode_window.transient(self.master)
+        mode_window.grab_set()
+        
+        # Center the mode selection window
+        mode_window.update_idletasks()
+        x = (self.master.winfo_screenwidth() - mode_window.winfo_width()) // 2
+        y = (self.master.winfo_screenheight() - mode_window.winfo_height()) // 2
+        mode_window.geometry(f"+{x}+{y}")
+        
+        # Make the window modal
+        mode_window.focus_set()
+        mode_window.protocol("WM_DELETE_WINDOW", lambda: None)  # Disable close button
+        
+        label = tk.Label(
+            mode_window,
+            text="Choose your game mode:",
+            font=("Inter", 14, "bold"),
+            fg="white",
+            bg=BACKGROUND_COLOR,
+            pady=10
         )
-        # 'yes' means play vs AI, 'no' means play vs another player
-        if response == "yes":
-            self.game_mode = "Human vs AI (Random)"
-            messagebox.showinfo("Game Mode Selected", "You are playing against the AI.")
-        else:
-            self.game_mode = "Human vs Human"
-            messagebox.showinfo(
-                "Game Mode Selected", "You are playing against another player."
-            )
-        self.update_status_label()
+        label.pack()
+        
+        # Button for Human vs Human
+        human_vs_human_btn = tk.Button(
+            mode_window,
+            text="Human vs Human",
+            command=lambda: self.set_game_mode("Human vs Human", mode_window),
+            font=("Inter", 12),
+            bg="#3498db",
+            fg="black",
+            width=20,
+            pady=5
+        )
+        human_vs_human_btn.pack(pady=5)
+        
+        # Button for Human vs Heuristic AI
+        human_vs_heuristic_btn = tk.Button(
+            mode_window,
+            text="Human vs Heuristic AI",
+            command=lambda: self.set_game_mode("Human vs Heuristic AI", mode_window),
+            font=("Inter", 12),
+            bg="#2ecc71",
+            fg="black",
+            width=20,
+            pady=5
+        )
+        human_vs_heuristic_btn.pack(pady=5)
+        
+        # Button for Human vs Neural Network AI
+        human_vs_nn_btn = tk.Button(
+            mode_window,
+            text="Human vs Neural Network AI",
+            command=lambda: self.set_game_mode("Human vs Neural Network AI", mode_window),
+            font=("Inter", 12),
+            bg="#9b59b6",
+            fg="black",
+            width=20,
+            pady=5
+        )
+        human_vs_nn_btn.pack(pady=5)
+        
+        # Info label
+        info_label = tk.Label(
+            mode_window,
+            text="You can change mode anytime using the 'New Game' button",
+            font=("Inter", 10),
+            fg="#bdc3c7",
+            bg=BACKGROUND_COLOR,
+            pady=10
+        )
+        info_label.pack()
+
+    def set_game_mode(self, mode, mode_window):
+        """Sets the game mode and closes the mode selection window."""
+        self.game_mode = mode
+        mode_window.destroy()
+        self.start_new_game()
+        messagebox.showinfo("Game Mode Selected", f"You selected: {mode}\n\nYou are Player 1 (Red).\nClick on any column to drop your piece.")
 
     def reset_game(self):
-        """Resets the board and game state, and reprompts mode selection."""
+        """Shows the game mode selection screen to start a new game."""
+        self.choose_game_mode()
+
+    def start_new_game(self):
+        """Starts a new game with the current game mode."""
         self.board = create_board()
         self.turn = 1
         self.game_over = False
         draw_board(self.canvas, self.board)
         if self.indicator_circle:
             self.canvas.delete(self.indicator_circle)
-        # Prompt again to allow changing modes between games
-        self.choose_game_mode()
+        self.update_status_label()
 
     def update_status_label(self):
-        color = PLAYER1_COLOR if self.turn == 1 else PLAYER2_COLOR
-        self.status_label.config(
-            text=f"Player {self.turn} ({color.capitalize()})'s Turn", fg="white"
-        )
+        if self.game_mode == "Human vs Human":
+            color = PLAYER1_COLOR if self.turn == 1 else PLAYER2_COLOR
+            self.status_label.config(
+                text=f"Player {self.turn} ({color.capitalize()})'s Turn", fg="white"
+            )
+        else:
+            if self.turn == 1:
+                self.status_label.config(
+                    text="Your Turn (Red)", fg="white"
+                )
+            else:
+                self.status_label.config(
+                    text="AI's Turn (Yellow)", fg="white"
+                )
 
     def handle_motion(self, event):
-        if self.game_over:
+        if self.game_over or self.game_mode is None:
             return
 
         col = int(math.floor(event.x / SQUARE_SIZE))
@@ -167,8 +248,10 @@ class ConnectFourApp:
             self.play_move(col)
 
             # Trigger AI only if in AI mode and game not over
-            if self.game_mode == "Human vs AI (Random)" and not self.game_over:
-                self.master.after(500, self.ai_move)
+            if self.game_mode == "Human vs Heuristic AI" and not self.game_over:
+                self.master.after(500, self.heuristic_ai_move)
+            elif self.game_mode == "Human vs Neural Network AI" and not self.game_over:
+                self.master.after(500, self.neural_network_ai_move)
 
     def play_move(self, col):
         row = get_next_open_row(self.board, col)
@@ -178,11 +261,21 @@ class ConnectFourApp:
         if check_win(self.board, self.turn):
             self.game_over = True
             winner_color = PLAYER1_COLOR if self.turn == 1 else PLAYER2_COLOR
-            self.status_label.config(text=f"Player {self.turn} Wins!", fg="green")
-            messagebox.showinfo(
-                "Game Over",
-                f"Player {self.turn} ({winner_color.capitalize()}) wins!",
-            )
+            
+            if self.game_mode == "Human vs Human":
+                self.status_label.config(text=f"Player {self.turn} Wins!", fg="green")
+                messagebox.showinfo(
+                    "Game Over",
+                    f"Player {self.turn} ({winner_color.capitalize()}) wins!",
+                )
+            else:
+                if self.turn == 1:
+                    self.status_label.config(text="You Win!", fg="green")
+                    messagebox.showinfo("Game Over", "Congratulations! You win!")
+                else:
+                    self.status_label.config(text="AI Wins!", fg="red")
+                    messagebox.showinfo("Game Over", "The AI wins!")
+                    
         elif is_board_full(self.board):
             self.game_over = True
             self.status_label.config(text="Game Drawn!", fg="orange")
@@ -190,6 +283,14 @@ class ConnectFourApp:
         else:
             self.turn = 3 - self.turn
             self.update_status_label()
+
+    def heuristic_ai_move(self):
+        # edit after heuristic ai is implemented
+        return self.ai_move()
+
+    def neural_network_ai_move(self):
+        # edit after NN ai is implemented
+        return self.ai_move()
 
     def ai_move(self):
         """Simple AI that plays a random valid column."""
