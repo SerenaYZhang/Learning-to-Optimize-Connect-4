@@ -33,69 +33,79 @@ def is_valid_location(board, col):
     return False
 
 
-def get_next_open_row(board, col):
+def get_next_open_row(col, board):
     """
     Finds the lowest empty row index (r) in a given column (col).
-    Returns -1 if the column is full.
+    Returns None if the column is full, otherwise returns (row, col) tuple.
     """
     for r in range(ROW_COUNT):
         if board[r][col] == 0:
-            return r
-    return -1  # Column is full
+            return (r, col)
+    return None  # Column is full
 
 
-def check_win(board, piece):
+def check_win(board, piece=None):
     """
-    Checks the entire board for 4-in-a-row for the specified piece (1 or 2).
+    Checks the entire board for 4-in-a-row.
+    If piece is specified (1 or 2), checks only for that piece.
+    If piece is None, returns 1 if player 1 won, 2 if player 2 won, 0 otherwise.
     Checks horizontally, vertically, and both diagonal directions.
     """
-    # 1. Check horizontal locations
-    for c in range(COLUMN_COUNT - 3):
-        for r in range(ROW_COUNT):
-            if (
-                board[r][c] == piece
-                and board[r][c + 1] == piece
-                and board[r][c + 2] == piece
-                and board[r][c + 3] == piece
-            ):
-                return True
+    # If piece is specified, check for that specific piece
+    if piece is not None:
+        # 1. Check horizontal locations
+        for c in range(COLUMN_COUNT - 3):
+            for r in range(ROW_COUNT):
+                if (
+                    board[r][c] == piece
+                    and board[r][c + 1] == piece
+                    and board[r][c + 2] == piece
+                    and board[r][c + 3] == piece
+                ):
+                    return True
 
-    # 2. Check vertical locations (only need to check up to ROW_COUNT - 3)
-    for c in range(COLUMN_COUNT):
-        for r in range(ROW_COUNT - 3):
-            if (
-                board[r][c] == piece
-                and board[r + 1][c] == piece
-                and board[r + 2][c] == piece
-                and board[r + 3][c] == piece
-            ):
-                return True
+        # 2. Check vertical locations (only need to check up to ROW_COUNT - 3)
+        for c in range(COLUMN_COUNT):
+            for r in range(ROW_COUNT - 3):
+                if (
+                    board[r][c] == piece
+                    and board[r + 1][c] == piece
+                    and board[r + 2][c] == piece
+                    and board[r + 3][c] == piece
+                ):
+                    return True
 
-    # 3. Check positive slope diagonals (bottom-left to top-right)
-    # Start checking from the bottom 3 rows and left 4 columns
-    for c in range(COLUMN_COUNT - 3):
-        for r in range(ROW_COUNT - 3):
-            if (
-                board[r][c] == piece
-                and board[r + 1][c + 1] == piece
-                and board[r + 2][c + 2] == piece
-                and board[r + 3][c + 3] == piece
-            ):
-                return True
+        # 3. Check positive slope diagonals (bottom-left to top-right)
+        for c in range(COLUMN_COUNT - 3):
+            for r in range(ROW_COUNT - 3):
+                if (
+                    board[r][c] == piece
+                    and board[r + 1][c + 1] == piece
+                    and board[r + 2][c + 2] == piece
+                    and board[r + 3][c + 3] == piece
+                ):
+                    return True
 
-    # 4. Check negative slope diagonals (top-left to bottom-right)
-    # Start checking from the top 3 rows and left 4 columns
-    for c in range(COLUMN_COUNT - 3):
-        for r in range(3, ROW_COUNT):  # Start from row 3 (0-indexed) up to 5
-            if (
-                board[r][c] == piece
-                and board[r - 1][c + 1] == piece
-                and board[r - 2][c + 2] == piece
-                and board[r - 3][c + 3] == piece
-            ):
-                return True
+        # 4. Check negative slope diagonals (top-left to bottom-right)
+        for c in range(COLUMN_COUNT - 3):
+            for r in range(3, ROW_COUNT):
+                if (
+                    board[r][c] == piece
+                    and board[r - 1][c + 1] == piece
+                    and board[r - 2][c + 2] == piece
+                    and board[r - 3][c + 3] == piece
+                ):
+                    return True
 
-    return False
+        return False
+
+    # If piece is None, check which player (if any) has won
+    if check_win(board, 1):
+        return 1
+    elif check_win(board, 2):
+        return 2
+    else:
+        return 0
 
 
 def is_board_full(board):

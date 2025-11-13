@@ -1,0 +1,38 @@
+{
+    "3": {
+        "total_games": 20,
+        "ai_wins": 19,
+        "opponent_wins": 1,
+        "draws": 0,
+        "ai_win_rate": 95.0,
+        "avg_moves_per_game": 12.85,
+        "avg_move_time": 0.006076817810105383,
+        "avg_game_time": 0.04024226665496826,
+        "min_moves": 7,
+        "max_moves": 29
+    },
+    "5": {
+        "total_games": 20,
+        "ai_wins": 20,
+        "opponent_wins": 0,
+        "draws": 0,
+        "ai_win_rate": 100.0,
+        "avg_moves_per_game": 10.5,
+        "avg_move_time": 0.09930922351659291,
+        "avg_game_time": 0.540663206577301,
+        "min_moves": 7,
+        "max_moves": 18
+    },
+    "7": {
+        "total_games": 20,
+        "ai_wins": 20,
+        "opponent_wins": 0,
+        "draws": 0,
+        "ai_win_rate": 100.0,
+        "avg_moves_per_game": 10.8,
+        "avg_move_time": 1.7007574767416176,
+        "avg_game_time": 8.746861743927003,
+        "min_moves": 7,
+        "max_moves": 22
+    }
+}
