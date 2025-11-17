@@ -4,7 +4,6 @@ COLUMN_COUNT = 7
 
 # --- Game State Functions ---
 
-
 def create_board():
     """
     Initializes the 6x7 board with zeros.
@@ -33,15 +32,15 @@ def is_valid_location(board, col):
     return False
 
 
-def get_next_open_row(col, board):
+def get_next_open_row(board, col):
     """
     Finds the lowest empty row index (r) in a given column (col).
-    Returns None if the column is full, otherwise returns (row, col) tuple.
+    Returns -1 if the column is full.
     """
     for r in range(ROW_COUNT):
         if board[r][col] == 0:
-            return (r, col)
-    return None  # Column is full
+            return r
+    return -1   # Column is full
 
 
 def check_win(board, piece=None):
@@ -96,7 +95,6 @@ def check_win(board, piece=None):
                     and board[r - 3][c + 3] == piece
                 ):
                     return True
-
         return False
 
     # If piece is None, check which player (if any) has won
