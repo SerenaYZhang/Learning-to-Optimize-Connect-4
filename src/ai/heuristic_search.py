@@ -1,5 +1,6 @@
 import sys
 import os
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from game.connect_four_logic import (
@@ -15,29 +16,15 @@ from game.connect_four_logic import (
 # Source: "https://www.deepexploration.org/blog/minimax-algorithm-for-connect-4"
 MAX_BASE = 80
 MIN_BASE = -80
-MAX_DEPTH = 5  # Example depth limit — adjust as needed
-human_starts = True  # Example flag
+MAX_DEPTH = 5  # default depth (can be overridden)
+# human_starts variable isn't needed for correct perspective if we pass ai_player explicitly
 
 
 def alt_heuristic_value(board, player_num, debug=False):
     """
     Weighted heuristic for Connect Four.
-
-    Returns a normalized score based on:
-    - number and strength of potential combos for the current player
-    - number of blocked combos (windows containing both players)
-    Formula (adapted from your article):
-
-    score = 1.5 * (
-        playerCombos[1]*0.5 +
-        playerCombos[2]*3 +
-        playerCombos[3]*9 +
-        blockedCombos[1]*0.5 +
-        blockedCombos[2]*2 +
-        blockedCombos[3]*40
-    ) / total_pieces
+    Returns a positive score expressing how favorable the board is for player_num.
     """
-
     opponent = 2 if player_num == 1 else 1
     player_combos = {1: 0, 2: 0, 3: 0}
     blocked_combos = {1: 0, 2: 0, 3: 0}
@@ -48,7 +35,6 @@ def alt_heuristic_value(board, player_num, debug=False):
     def update_counts(window):
         p_count = window.count(player_num)
         o_count = window.count(opponent)
-        empty = window.count(0)
         if p_count > 0 and o_count > 0:
             # blocked combo (both players present)
             if p_count <= 3 and o_count <= 3:
@@ -58,7 +44,6 @@ def alt_heuristic_value(board, player_num, debug=False):
             if p_count <= 3:
                 player_combos[p_count] += 1
 
-    # Generate all 4-cell windows
     for r in range(ROW_COUNT):
         for c in range(COLUMN_COUNT - 3):
             update_counts(board[r][c : c + 4])
@@ -90,139 +75,104 @@ def alt_heuristic_value(board, player_num, debug=False):
         / total_pieces
     )
 
-    return score if player_num == 1 else -score
+    # Important: return the score from the requested player's perspective (positive)
+    return score
 
 
-def get_best_move(board, max_depth=MAX_DEPTH, human_starts=True):
+def get_best_move(board, ai_player=2, max_depth=MAX_DEPTH):
     """
-    Determines the best move for the AI (player 1) using minimax with alpha-beta pruning.
-
-    Args:
-        board: Current game board state
-        max_depth: Maximum search depth for minimax
-        human_starts: Whether human (player 2) starts the game
-
-    Returns:
-        Column number (0-6) for the best move, or None if no valid moves
+    Returns the best column for ai_player (1 or 2).
     """
-    best_val = float('-inf')
+    best_val = float("-inf")
     best_col = None
-    alpha = float('-inf')
-    beta = float('inf')
+    alpha = float("-inf")
+    beta = float("inf")
 
+    # Try all columns
     for col in range(COLUMN_COUNT):
-        next_move = get_next_open_row(col, board)
-        if next_move is None:
+        row = get_next_open_row(board, col)  # correct argument order
+        if row == -1:
             continue
 
-        # Create child board and make move
-        child_board = [row[:] for row in board]
-        child_board[next_move[0]][next_move[1]] = 1
+        # Create child board and make move for ai_player
+        child_board = [r[:] for r in board]
+        child_board[row][col] = ai_player
 
-        # Evaluate this move
-        move_val = minimax(
-            child_board, 1, False, alpha, beta, max_depth, human_starts
-        )
+        # Evaluate this move: next is minimizing (opponent)
+        move_val = minimax(child_board, 1, False, alpha, beta, max_depth, ai_player)
 
         if move_val > best_val:
             best_val = move_val
             best_col = col
 
-        # Update alpha
+        # Update alpha for ordering (not necessary but consistent)
         alpha = max(alpha, best_val)
 
     return best_col
 
 
-def minimax(board, depth, is_maximizing, alpha, beta, max_depth, human_starts):
+def minimax(board, depth, is_maximizing, alpha, beta, max_depth, ai_player):
     """
-    Minimax algorithm with alpha-beta pruning for Connect 4.
-
-    Args:
-        board: Current game board state
-        depth: Current depth in the search tree
-        is_maximizing: True if maximizing player's turn, False otherwise
-        alpha: Best value the maximizer can guarantee (alpha cutoff)
-        beta: Best value the minimizer can guarantee (beta cutoff)
-        max_depth: Maximum search depth
-        human_starts: Whether human (player 2) starts the game
-
-    Returns:
-        Best evaluation score for the current position
-
-    Alpha-Beta Pruning:
-        - Alpha: The best value that the maximizer currently can guarantee
-        - Beta: The best value that the minimizer currently can guarantee
-        - Pruning occurs when beta <= alpha (the branch cannot influence the final decision)
+    Minimax algorithm with alpha-beta pruning.
+    ai_player: 1 or 2 (which side the AI plays)
     """
-    # Check if game terminated
-    over_result = check_win(board)
-    if over_result == 1:
-        #AI wins return high score, decreasing with depth (prefer quicker wins)
+    opponent = 1 if ai_player == 2 else 2
+
+    # Terminal checks: check explicit winners for each side
+    if check_win(board, ai_player):
         return MAX_BASE - 0.25 * MAX_BASE * (depth / max_depth)
-    if over_result == 2:
-        # uman wins return low score, increasing with depth (delay losses)
+    if check_win(board, opponent):
         return MIN_BASE + 0.25 * MAX_BASE * (depth / max_depth)
 
-    #Check for draw
     if is_board_full(board):
         return 0
 
-    #Heuristic value if at max depth
+    # Heuristic at max depth
     if depth >= max_depth:
-        player_num = 2 if human_starts else 1
-        heuristic_value = alt_heuristic_value(board, player_num, False)
+        heuristic_value = alt_heuristic_value(board, ai_player, False)
         discounted_value = heuristic_value - 0.25 * heuristic_value * (
             depth / max_depth
         )
-        return discounted_value if player_num == 1 else -discounted_value
+        return discounted_value
 
-    # Game non-terminated- explore child nodes
+    # Explore children
     if is_maximizing:
-        #Maximizing player
-        best_val = float('-inf')
+        best_val = float("-inf")
         for j in range(COLUMN_COUNT):
-            next_move = get_next_open_row(j, board)
-            if next_move is None:
+            row = get_next_open_row(board, j)
+            if row == -1:
                 continue
 
-            #Create child board and make move
-            child_board = [row[:] for row in board]
-            child_board[next_move[0]][next_move[1]] = 1
+            child_board = [r[:] for r in board]
+            child_board[row][j] = ai_player
 
-            #Recursive call
             child_val = minimax(
-                child_board, depth + 1, False, alpha, beta, max_depth, human_starts
+                child_board, depth + 1, False, alpha, beta, max_depth, ai_player
             )
             best_val = max(best_val, child_val)
 
-            # Alpha-beta pruning
             alpha = max(alpha, best_val)
             if beta <= alpha:
-                break  # Beta cutoff - minimizer won't allow this branch
+                break  # beta cutoff
 
         return best_val
     else:
-        #Minimizing player
-        best_val = float('inf')
+        best_val = float("inf")
         for j in range(COLUMN_COUNT):
-            next_move = get_next_open_row(j, board)
-            if next_move is None:
+            row = get_next_open_row(board, j)
+            if row == -1:
                 continue
 
-            #Create child board and make move
-            child_board = [row[:] for row in board]
-            child_board[next_move[0]][next_move[1]] = 2
+            child_board = [r[:] for r in board]
+            child_board[row][j] = opponent
 
-            #Recursive call
             child_val = minimax(
-                child_board, depth + 1, True, alpha, beta, max_depth, human_starts
+                child_board, depth + 1, True, alpha, beta, max_depth, ai_player
             )
             best_val = min(best_val, child_val)
 
-            # Alpha-beta pruning
             beta = min(beta, best_val)
             if beta <= alpha:
-                break  
+                break  # alpha cutoff
 
         return best_val

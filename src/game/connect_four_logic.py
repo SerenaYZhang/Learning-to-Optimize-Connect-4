@@ -4,6 +4,7 @@ COLUMN_COUNT = 7
 
 # --- Game State Functions ---
 
+
 def create_board():
     """
     Initializes the 6x7 board with zeros.
@@ -40,7 +41,7 @@ def get_next_open_row(board, col):
     for r in range(ROW_COUNT):
         if board[r][col] == 0:
             return r
-    return -1   # Column is full
+    return -1  # Column is full
 
 
 def check_win(board, piece=None):

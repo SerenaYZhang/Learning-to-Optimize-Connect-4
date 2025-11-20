@@ -12,6 +12,12 @@ from connect_four_logic import (
     check_win,
     is_board_full,
 )
+import sys
+import os
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from ai.heuristic_search import get_best_move
+
 
 # --- GUI Constants ---
 SQUARE_SIZE = 100
@@ -105,27 +111,27 @@ class ConnectFourApp:
         mode_window.geometry("400x250")
         mode_window.transient(self.master)
         mode_window.grab_set()
-        
+
         # Center the mode selection window
         mode_window.update_idletasks()
         x = (self.master.winfo_screenwidth() - mode_window.winfo_width()) // 2
         y = (self.master.winfo_screenheight() - mode_window.winfo_height()) // 2
         mode_window.geometry(f"+{x}+{y}")
-        
+
         # Make the window modal
         mode_window.focus_set()
         mode_window.protocol("WM_DELETE_WINDOW", lambda: None)  # Disable close button
-        
+
         label = tk.Label(
             mode_window,
             text="Choose your game mode:",
             font=("Inter", 14, "bold"),
             fg="white",
             bg=BACKGROUND_COLOR,
-            pady=10
+            pady=10,
         )
         label.pack()
-        
+
         # Button for Human vs Human
         human_vs_human_btn = tk.Button(
             mode_window,
@@ -135,10 +141,10 @@ class ConnectFourApp:
             bg="#3498db",
             fg="black",
             width=20,
-            pady=5
+            pady=5,
         )
         human_vs_human_btn.pack(pady=5)
-        
+
         # Button for Human vs Heuristic AI
         human_vs_heuristic_btn = tk.Button(
             mode_window,
@@ -148,23 +154,25 @@ class ConnectFourApp:
             bg="#2ecc71",
             fg="black",
             width=20,
-            pady=5
+            pady=5,
         )
         human_vs_heuristic_btn.pack(pady=5)
-        
+
         # Button for Human vs Neural Network AI
         human_vs_nn_btn = tk.Button(
             mode_window,
             text="Human vs Neural Network AI",
-            command=lambda: self.set_game_mode("Human vs Neural Network AI", mode_window),
+            command=lambda: self.set_game_mode(
+                "Human vs Neural Network AI", mode_window
+            ),
             font=("Inter", 12),
             bg="#9b59b6",
             fg="black",
             width=20,
-            pady=5
+            pady=5,
         )
         human_vs_nn_btn.pack(pady=5)
-        
+
         # Info label
         info_label = tk.Label(
             mode_window,
@@ -172,7 +180,7 @@ class ConnectFourApp:
             font=("Inter", 10),
             fg="#bdc3c7",
             bg=BACKGROUND_COLOR,
-            pady=10
+            pady=10,
         )
         info_label.pack()
 
@@ -181,7 +189,10 @@ class ConnectFourApp:
         self.game_mode = mode
         mode_window.destroy()
         self.start_new_game()
-        messagebox.showinfo("Game Mode Selected", f"You selected: {mode}\n\nYou are Player 1 (Red).\nClick on any column to drop your piece.")
+        messagebox.showinfo(
+            "Game Mode Selected",
+            f"You selected: {mode}\n\nYou are Player 1 (Red).\nClick on any column to drop your piece.",
+        )
 
     def reset_game(self):
         """Shows the game mode selection screen to start a new game."""
@@ -205,19 +216,15 @@ class ConnectFourApp:
             )
         else:
             if self.turn == 1:
-                self.status_label.config(
-                    text="Your Turn (Red)", fg="white"
-                )
+                self.status_label.config(text="Your Turn (Red)", fg="white")
             else:
-                self.status_label.config(
-                    text="AI's Turn (Yellow)", fg="white"
-                )
+                self.status_label.config(text="AI's Turn (Yellow)", fg="white")
 
     def handle_motion(self, event):
         if self.game_over or self.game_mode is None:
             return
 
-        col = int(math.floor(event.x / SQUARE_SIZE))
+        col = max(0, min(COLUMN_COUNT - 1, event.x // SQUARE_SIZE))
         if 0 <= col < COLUMN_COUNT:
             if self.indicator_circle:
                 self.canvas.delete(self.indicator_circle)
@@ -261,7 +268,7 @@ class ConnectFourApp:
         if check_win(self.board, self.turn):
             self.game_over = True
             winner_color = PLAYER1_COLOR if self.turn == 1 else PLAYER2_COLOR
-            
+
             if self.game_mode == "Human vs Human":
                 self.status_label.config(text=f"Player {self.turn} Wins!", fg="green")
                 messagebox.showinfo(
@@ -275,7 +282,7 @@ class ConnectFourApp:
                 else:
                     self.status_label.config(text="AI Wins!", fg="red")
                     messagebox.showinfo("Game Over", "The AI wins!")
-                    
+
         elif is_board_full(self.board):
             self.game_over = True
             self.status_label.config(text="Game Drawn!", fg="orange")
@@ -292,15 +299,18 @@ class ConnectFourApp:
         # edit after NN ai is implemented
         return self.ai_move()
 
-    def ai_move(self):
-        """Simple AI that plays a random valid column."""
-        valid_cols = [
-            c for c in range(COLUMN_COUNT) if is_valid_location(self.board, c)
-        ]
-        if not valid_cols:
-            return
-        ai_col = random.choice(valid_cols)
-        self.play_move(ai_col)
+    def heuristic_ai_move(self):
+        """Call heuristic_search.get_best_move and play the returned column."""
+        # choose ai_player = 2 (your GUI uses 2 for AI)
+        ai_col = get_best_move(
+            self.board, ai_player=2, max_depth=5
+        )  # depth can be tuned
+        if ai_col is None:
+            # no valid heuristic move found — fallback to random
+            return self.ai_move()
+        # play the heuristic-selected column
+        if is_valid_location(self.board, ai_col):
+            self.play_move(ai_col)
 
 
 if __name__ == "__main__":
