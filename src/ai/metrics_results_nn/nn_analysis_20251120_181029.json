@@ -1,0 +1,12 @@
+{
+    "total_games": 50,
+    "ai_wins": 40,
+    "opponent_wins": 10,
+    "draws": 0,
+    "ai_win_rate": 80.0,
+    "avg_moves_per_game": 18.86,
+    "avg_move_time": 0.13112648892065887,
+    "avg_game_time": 1.2407023239135742,
+    "min_moves": 9,
+    "max_moves": 39
+}
