@@ -3,10 +3,6 @@
 ## Overview
 This script evaluates the performance of the Connect 4 AI using minimax with alpha-beta pruning. It runs multiple games and collects comprehensive metrics to analyze the AI's performance.
 
-**Author:** Nicole Sin (ns753)
-
-## Features
-
 ### Alpha-Beta Pruning
 The minimax implementation includes **alpha-beta pruning** for improved efficiency:
 - **Alpha**: Best value the maximizer can guarantee at current node
@@ -46,7 +42,7 @@ Edit the `main()` function in the script to customize:
 
 ```python
 # Number of games to run
-NUM_GAMES = 50
+NUM_GAMES = 10
 
 # Opponent type: 'random' or 'ai'
 OPPONENT_TYPE = "random"
@@ -119,16 +115,13 @@ Average total game time: 0.48s
 | Depth | Win Rate | Avg Move Time | Analysis |
 |-------|----------|---------------|----------|
 | 3     | 95.00%   | 0.0061s      | Fast but less reliable |
-| 5     | 100.00%  | 0.0993s      | Good balance (recommended) |
+| 5     | 100.00%  | 0.0993s      | Good balance |
 | 7     | 100.00%  | 1.7008s      | Most thorough but slow |
 
 ## Key Findings
 
 ### Alpha-Beta Pruning Effectiveness
-The alpha-beta pruning implementation significantly reduces the search space:
-- Without pruning: O(b^d) nodes explored (b=7 branches, d=depth)
-- With pruning: O(b^(d/2)) nodes in best case
-- For depth 5: ~16,807 nodes → ~343 nodes (theoretical best case)
+The alpha-beta pruning implementation significantly reduces the search space
 
 ### Optimal Configuration
 Based on testing:
@@ -139,7 +132,7 @@ Based on testing:
 
 - **For competitive play**: Depth 7
   - Maximum performance
-  - Longer computation time acceptable for tournament play
+  - Longer computation time 
 
 - **For real-time play**: Depth 3
   - Near-instant moves
@@ -179,44 +172,3 @@ metrics = run_multiple_games(
 analysis = analyze_metrics(metrics)
 print(f"Win rate: {analysis['ai_win_rate']:.2f}%")
 ```
-
-## Future Enhancements
-
-Potential improvements to track:
-1. **Node counting**: Instrument minimax to count explored vs pruned nodes
-2. **Opening book**: Track which opening moves lead to fastest wins
-3. **Position evaluation**: Analyze heuristic values at critical game states
-4. **Neural network comparison**: Compare against trained NN model
-
-## Dependencies
-
-- Python 3.6+
-- Standard library modules: time, random, json, csv, datetime, sys, os
-- Local modules: game.connect_four_logic, ai.heuristic_search
-
-## Troubleshooting
-
-### Import Errors
-If you get `ModuleNotFoundError`, ensure you're running from the project root:
-```bash
-cd /Users/nicolesin/Documents/dev_env/Learning-to-Optimize-Connect-4
-python src/ai/run_heuristic_metrics.py
-```
-
-### Slow Performance
-If games are taking too long:
-- Reduce `MAX_DEPTH` (try 3 or 4)
-- Reduce `NUM_GAMES`
-- Use 'random' opponent instead of 'ai'
-
-### Memory Issues
-For very large test runs (1000+ games):
-- Process results in batches
-- Clear metrics list periodically
-- Use generator pattern instead of storing all results
-
-## Contact
-
-For questions or improvements, contact:
-- Nicole Sin (ns753)
-- Team: Ryan Park (ryp3), Serena Zhang (syz8)
