@@ -14,9 +14,19 @@ from connect_four_logic import (
 )
 import sys
 import os
+import numpy as np
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from ai.heuristic_search import get_best_move
+
+# Try to import TensorFlow for neural network AI
+try:
+    import tensorflow as tf
+    from tensorflow.keras.models import load_model
+    TENSORFLOW_AVAILABLE = True
+except ImportError:
+    TENSORFLOW_AVAILABLE = False
+    print("Warning: TensorFlow not available. Neural Network AI will not work.")
 
 
 # --- GUI Constants ---
@@ -61,6 +71,24 @@ class ConnectFourApp:
         self.turn = 1
         self.game_over = False
         self.game_mode = None  # Will be chosen via prompt
+        
+        # --- Load neural network model if available ---
+        self.nn_model = None
+        if TENSORFLOW_AVAILABLE:
+            try:
+                # Path to the model file (relative to this file)
+                script_dir = os.path.dirname(os.path.abspath(__file__))
+                model_path = os.path.join(script_dir, '..', 'ai', 'connect_four_ai_model.h5')
+                model_path = os.path.normpath(model_path)
+                
+                if os.path.exists(model_path):
+                    self.nn_model = load_model(model_path)
+                    print(f"Neural network model loaded successfully from {model_path}")
+                else:
+                    print(f"Warning: Neural network model not found at {model_path}")
+            except Exception as e:
+                print(f"Warning: Could not load neural network model: {e}")
+                self.nn_model = None
 
         # --- Canvas setup ---
         self.canvas = tk.Canvas(
@@ -292,14 +320,6 @@ class ConnectFourApp:
             self.update_status_label()
 
     def heuristic_ai_move(self):
-        # edit after heuristic ai is implemented
-        return self.ai_move()
-
-    def neural_network_ai_move(self):
-        # edit after NN ai is implemented
-        return self.ai_move()
-
-    def heuristic_ai_move(self):
         """Call heuristic_search.get_best_move and play the returned column."""
         # choose ai_player = 2 (your GUI uses 2 for AI)
         ai_col = get_best_move(
@@ -307,10 +327,81 @@ class ConnectFourApp:
         )  # depth can be tuned
         if ai_col is None:
             # no valid heuristic move found — fallback to random
-            return self.ai_move()
+            valid_cols = [col for col in range(COLUMN_COUNT) if is_valid_location(self.board, col)]
+            if valid_cols:
+                ai_col = random.choice(valid_cols)
+            else:
+                return
         # play the heuristic-selected column
         if is_valid_location(self.board, ai_col):
             self.play_move(ai_col)
+
+    def neural_network_ai_move(self):
+        """Use the trained neural network model to make a move."""
+        if self.nn_model is None:
+            # Fallback to random if model not available
+            messagebox.showwarning(
+                "Neural Network AI Unavailable",
+                "Neural network model not loaded. Falling back to random moves."
+            )
+            valid_cols = [col for col in range(COLUMN_COUNT) if is_valid_location(self.board, col)]
+            if valid_cols:
+                ai_col = random.choice(valid_cols)
+                if is_valid_location(self.board, ai_col):
+                    self.play_move(ai_col)
+            return
+        
+        # AI is Player 2 in the GUI
+        ai_player = 2
+        BOARD_SIZE = ROW_COUNT * COLUMN_COUNT
+        valid_cols = [col for col in range(COLUMN_COUNT) if is_valid_location(self.board, col)]
+        
+        if not valid_cols:
+            return
+        
+        best_col = None
+        best_win_prob = -1.0
+        best_draw_prob = -1.0  # For tie-breaking
+        
+        for col in valid_cols:
+            # Simulate the move
+            temp_board = np.array([row[:] for row in self.board])
+            row = get_next_open_row(temp_board, col)
+            
+            if row == -1:
+                continue
+            
+            temp_board[row][col] = ai_player
+            
+            # Prepare board for NN: convert to model format
+            # Model expects: 1.0 (Player 1), -1.0 (Player -1/Opponent), 0.0 (Empty)
+            # Game uses: 1 (Player 1), 2 (AI), 0 (Empty)
+            # Convert: 1 -> 1.0, 2 -> -1.0, 0 -> 0.0
+            flat_board = temp_board.flatten().astype(float)
+            nn_input_data = np.where(flat_board == 2.0, -1.0, flat_board).reshape(1, BOARD_SIZE)
+            
+            # Predict outcome: [P(Winner=-1), P(Draw), P(Winner=1)]
+            # Since AI is Player 2 (which maps to -1.0), we want to maximize Index 0
+            prediction = self.nn_model.predict(nn_input_data, verbose=0)[0]
+            win_prob = prediction[0]  # Probability that Player -1 (our AI) wins
+            draw_prob = prediction[1]  # Probability of a draw
+            
+            if win_prob > best_win_prob:
+                best_win_prob = win_prob
+                best_draw_prob = draw_prob
+                best_col = col
+            # Tie-breaker: if win probabilities are equal, prefer moves with higher draw probability
+            elif win_prob == best_win_prob and draw_prob > best_draw_prob:
+                best_draw_prob = draw_prob
+                best_col = col
+        
+        # Make the move
+        if best_col is not None and is_valid_location(self.board, best_col):
+            self.play_move(best_col)
+        else:
+            # Fallback to first valid column if something went wrong
+            if valid_cols:
+                self.play_move(valid_cols[0])
 
 
 if __name__ == "__main__":
