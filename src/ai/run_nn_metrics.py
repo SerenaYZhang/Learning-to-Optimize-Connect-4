@@ -208,9 +208,15 @@ def play_game(
             if verbose:
                 print(f"AI chose column {col} (took {move_time:.3f}s)")
 
-        else:  # Opponent's turn (must be random)
+        else:  # Opponent's turn
             metrics.opponent_moves += 1
-            col = random_move(board)
+            if opponent_type == "random":
+                col = random_move(board)
+            elif opponent_type == "heuristic":
+                from ai.heuristic_search import get_best_move
+                col = get_best_move(board, ai_player=2, max_depth=5)
+            else:
+                col = random_move(board)  # default
 
             if verbose:
                 print(f"Opponent chose column {col}")
@@ -391,7 +397,8 @@ def main():
 
     # Configuration
     NUM_GAMES = 50
-    OPPONENT_TYPE = "random" 
+    OPPONENT_TYPE = "heuristic"  # Test against heuristic AI (depth 1)
+    # Use "random" to test against random opponent
     VERBOSE = False
 
     try:
